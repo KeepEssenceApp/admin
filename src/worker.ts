@@ -355,7 +355,7 @@ export default {
     headers.set("referrer-policy", "no-referrer");
     headers.set("x-frame-options", "DENY");
     headers.set("content-security-policy", CSP);
-    if ((headers.get("content-type") ?? "").includes("text/html")) headers.set("cache-control", "no-store");
+    if ((headers.get("content-type") ?? "").includes("text/html")) headers.set("cache-control", "no-store, no-transform"); // no-transform: the hosting platform must not add its analytics script to this page
     return new Response(page.body, { status: page.status, statusText: page.statusText, headers });
   },
 };
