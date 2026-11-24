@@ -1,0 +1,32 @@
+# The management portal: a small server (src/worker.ts) in front of a static app (dist/).
+# See README.md for the deploy guide.
+name = "keepessence-admin"
+main = "src/worker.ts"
+compatibility_date = "2026-08-01"
+
+# Custom domain. Self-hosters: put your own host here (the zone must be on your account).
+routes = [{ pattern = "admin.keepessence.app", custom_domain = true }]
+workers_dev = false
+preview_urls = false
+
+# The app. Every request goes through the Worker first, so it can add the security headers.
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+# The core. The portal calls its operator interface (/admin/…) through this binding.
+[[services]]
+binding = "CORE"
+service = "keepessence-core"
+
+# The landing page's beta sign-up list. The portal reads it and fills in invited_at.
+[[d1_databases]]
+binding = "WAITLIST"
+database_name = "keepessence-waitlist"
+# Self-hosters: replace with the id of your own sign-up database.
+database_id = "42912f0f-09f6-4f54-93e6-56c23c9bd17d"
+
+# Secrets (wrangler secret put …): ADMIN_PASSWORD, SESSION_KEY, CORE_ADMIN_SECRET.
+# Local development only: CORE_URL, when set, is fetched instead of the CORE binding.
