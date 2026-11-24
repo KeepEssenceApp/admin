@@ -123,7 +123,14 @@ export function OverviewPage() {
         <h2>{t("overview.config")}</h2>
         <dl class="facts" data-testid="config">
           <div data-config="model"><dt>{t("overview.model")}</dt><dd><Configured on={core.config.model_configured} /> <span class="quiet">{core.config.model}</span></dd></div>
-          <div data-config="mail"><dt>{t("overview.mail")}</dt><dd><Configured on={core.config.mail_configured} /></dd></div>
+          <div data-config="mail"><dt>{t("overview.mail")}</dt><dd>
+            <Configured on={core.config.mail_configured} />{" "}
+            {core.config.mail_last && (
+              <span class={core.config.mail_last.result === "sent" ? "quiet" : "bad"} data-testid="mail-last">
+                {core.config.mail_last.result === "sent" ? t("overview.mail_last_sent") : t("overview.mail_last_failed", { why: core.config.mail_last.result.replace(/^(failed|refused): ?/, "") })}
+              </span>
+            )}
+          </dd></div>
           <div data-config="push"><dt>{t("overview.push")}</dt><dd><Configured on={core.config.push_configured} /></dd></div>
           <div data-config="version"><dt>{t("overview.version")}</dt><dd>{core.config.version}</dd></div>
         </dl>

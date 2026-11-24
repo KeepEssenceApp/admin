@@ -19,7 +19,7 @@ export interface CoreOverview {
   waiting: { triage: number; analysis: number };
   usage: { today: Calls; last_7d: Calls };
   cron: { minute_ran_at: string | null; hourly_ran_at: string | null };
-  config: { model: string; model_configured: boolean; mail_configured: boolean; push_configured: boolean; version: string };
+  config: { model: string; model_configured: boolean; mail_configured: boolean; mail_last?: { at: string; result: string } | null; push_configured: boolean; version: string };
 }
 export interface Overview {
   core: CoreOverview;

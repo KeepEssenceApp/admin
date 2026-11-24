@@ -127,11 +127,9 @@ export function InvitesPage() {
                     <td class="nowrap">{i.joined_at ? <State dot="solid">{dateTime(i.joined_at)}</State> : <State dot="ring">{t("invites.not_joined")}</State>}</td>
                     <td class="nowrap">
                       <span class="row">
-                        {!data.mail_configured && (
-                          <button class="btn quiet small" type="button" disabled={busy} onClick={() => void getCode(i.email)}>
-                            {t("invites.code")}
-                          </button>
-                        )}
+                        <button class="btn quiet small" type="button" disabled={busy} onClick={() => void getCode(i.email)}>
+                          {t("invites.code")}
+                        </button>
                         {!i.joined_at && !i.user_id && (
                           <button class="btn quiet small" type="button" disabled={busy} onClick={() => void withdraw(i.email)}>
                             {t("invites.withdraw")}
