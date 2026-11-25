@@ -1,10 +1,24 @@
-// Every colour in the portal comes from design/tokens.css, and the gold token is not used at all.
+// Every colour in the portal comes from design/tokens.css, and the portal's own interface uses
+// no gold. The one exception is the brand's own image files: the mark carries one gold dot.
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { gold, read, tokenColours, tokenNames, walk } from "./helpers";
 
 const NAMED = ["black", "white", "red", "green", "yellow", "blue", "gray", "grey", "gold", "orange", "purple", "pink", "silver", "navy", "teal", "lime", "aqua", "maroon", "olive", "brown", "crimson", "tomato", "goldenrod", "whitesmoke", "gainsboro", "darkgray", "dimgray", "lightgray", "lightgrey"];
 const sources = walk("src", [".css", ".tsx", ".ts"]);
 const pages = ["index.html", ...walk("public", [".svg", ".html", ".webmanifest", ".js"])];
+// The brand's files, copied byte for byte from the brand resources (sha256). They are never
+// recoloured or edited by hand: a changed file fails here. Only these may hold gold.
+const BRAND: Record<string, string> = {
+  "public/icons/mark-black.svg": "fc3446a2331f6c8aa954dec98abdc81c0d705375dcc37be3cb816e8c79e30354",
+  "public/icons/mark-white.svg": "757aa7391e4239b6ed8071e14532457c9ae2b179141381d191c5ef6e95207f93",
+  "public/icons/mark-small-black.svg": "e678ab46b70a9ce3795576267f1f85991333f4abcc3f1cd86a86ac557a1c3971",
+  "public/icons/mark-small-white.svg": "71e88e44f012bded88fa9f9358afc38408645f87cb5fb46e628cf713faf3068f",
+  // The browser-tab icon is the brand's app icon: the same mark, its dot drawn with a gradient.
+  "public/icons/favicon.svg": "c3e8c6a4e26cb7a043cd5afd59ec1e4caa28e513a8ea4f298c98d793085848d6",
+};
+const MARKS = Object.keys(BRAND).filter((f) => f.includes("/mark-"));
+const own = (files: string[]) => files.filter((f) => !(f in BRAND));
 const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 describe("colours", () => {
@@ -35,9 +49,27 @@ describe("colours", () => {
     expect(missing).toEqual([]);
   });
 
-  it("never uses gold: not the token, not its value, not in the icons", () => {
+  it("has the brand's files unchanged, and no other image in public/", () => {
+    for (const [file, sum] of Object.entries(BRAND)) expect(createHash("sha256").update(read(file)).digest("hex"), file).toBe(sum);
+    expect(walk("public", [".svg"]).sort()).toEqual(Object.keys(BRAND).sort());
+  });
+
+  it("allows gold in one place only: the dot inside the brand mark", () => {
+    for (const file of MARKS) {
+      const text = read(file);
+      const colours = [...text.matchAll(/#[0-9a-fA-F]{6}\b/g)].map((m) => m[0].toUpperCase());
+      // One gold value, and it is the fill of the one circle. Everything else is black or white.
+      expect(colours.filter((c) => c === gold()), file).toHaveLength(1);
+      expect(text.match(/<circle\b[^>]*>/g), file).toHaveLength(1);
+      expect(text, file).toMatch(new RegExp(`<circle\\b[^>]*fill="${gold()}"`, "i"));
+      const ink = file.includes("white") ? "#FFFFFF" : "#0B0B0B";
+      expect(new Set(colours.filter((c) => c !== gold())), file).toEqual(new Set([ink]));
+    }
+  });
+
+  it("never uses gold anywhere else: not the token, not its value, not in its own pages", () => {
     const hits: string[] = [];
-    for (const file of [...sources, ...pages]) {
+    for (const file of own([...sources, ...pages])) {
       const text = read(file);
       if (/--ke-gold\b/.test(strip(text))) hits.push(`${file}: --ke-gold`);
       if (text.toUpperCase().includes(gold())) hits.push(`${file}: ${gold()}`);
@@ -58,13 +90,14 @@ describe("colours", () => {
 
   it("keeps the page and the icons within the token colours", () => {
     const allowed = tokenColours();
-    const used = pages.flatMap((file) => [...read(file).matchAll(/#[0-9a-fA-F]{6}\b/g)].map((m) => m[0].toUpperCase()));
+    // The browser-tab icon is the brand's file (checked byte for byte above); the marks are held to the tokens.
+    const used = pages.filter((f) => f !== "public/icons/favicon.svg").flatMap((file) => [...read(file).matchAll(/#[0-9a-fA-F]{6}\b/g)].map((m) => m[0].toUpperCase()));
     expect(used.length).toBeGreaterThan(0);
     expect(used.filter((c) => !allowed.has(c))).toEqual([]);
   });
 
   it("has no green and no yellow among the tokens it relies on", () => {
-    // Red is the only functional colour. Gold is in the token file but the portal never uses it.
+    // Red is the only functional colour. Gold is in the token file but the portal's own interface never uses it.
     expect([...tokenColours()].sort()).toEqual(
       ["#0B0B0B", "#161616", "#1F1F1F", "#2C2C2C", "#4A4A4A", "#6B6B6B", "#929290", "#B3261E", "#B9B9B5", "#C5A229", "#DEDEDA", "#EAEAE7", "#F2877B", "#F5F5F3", "#FFFFFF"].sort(),
     );

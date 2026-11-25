@@ -36,7 +36,7 @@ export function SignIn() {
       <form class="front-box" onSubmit={submit}>
         <div class="front-brand">
           <Logo size={44} />
-          <img class="front-wordmark" src="/icons/wordmark-white.svg" alt="KeepEssence" width="182" height="30" />
+          <span class="front-name">{t("brand.name")}</span>
         </div>
         <h1>{t("signin.title")}</h1>
         <label>

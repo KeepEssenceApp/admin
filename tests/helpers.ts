@@ -21,5 +21,5 @@ export function tokenColours(): Set<string> {
 export function tokenNames(): Set<string> {
   return new Set([...read("design/tokens.css").matchAll(/(--ke-[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
 }
-/** The value of the gold token, upper-cased. The portal never uses it. */
+/** The value of the gold token, upper-cased. The portal's own interface never uses it. */
 export const gold = () => read("design/tokens.css").match(/--ke-gold:\s*(#[0-9a-fA-F]{6})/)![1].toUpperCase();

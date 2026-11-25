@@ -11,6 +11,8 @@ export const en: Record<keyof typeof zh, string> = {
   "nav.signout": "Sign out",
   "nav.label": "Entries",
   "nav.menu": "Menu",
+  // The name beside the mark: text, the same in both languages.
+  "brand.name": "Keep Essence",
   "nav.name": "Admin",
 
   "common.loading": "Loading…",

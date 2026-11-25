@@ -10,6 +10,8 @@ export const zh = {
   "nav.signout": "退出",
   "nav.label": "入口",
   "nav.menu": "菜单",
+  // The name beside the mark: text, the same in both languages.
+  "brand.name": "Keep Essence",
   "nav.name": "管理后台",
 
   "common.loading": "正在读取…",

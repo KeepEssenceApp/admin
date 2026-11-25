@@ -2,7 +2,8 @@
  * Every colour, radius and type size comes from design/tokens.css. No colour literal lives here
  * (tests/colours.test.ts fails if one appears).
  *   - black, white, paper, greys carry the interface
- *   - the gold token is not used in the portal: nothing here is "kept"
+ *   - the gold token is not used in the portal: nothing here is "kept". The only gold on a page
+ *     is the dot inside the brand mark, which is an image file and is never recoloured
  *   - red only for delete and suspend, and for what is broken
  *   - only things you can press have a fill or a border; a state is a dot plus words
  */
@@ -125,7 +126,16 @@ input[type="checkbox"] { accent-color: var(--ke-solid); width: 16px; height: 16p
 .dot { display: inline-block; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--ke-text); }
 .dot.ring { background: transparent; border: 1.5px solid var(--ke-text-3); }
 .dot.danger { background: var(--ke-danger); }
-.logo { display: block; }
+/* The mark is the brand's file: the black one shows on light, the white one on dark. */
+.logo { display: block; flex: none; }
+.logo-on-light { display: block; }
+.logo-on-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-on-light { display: none; }
+  :root:not([data-theme="light"]) .logo-on-dark { display: block; }
+}
+:root[data-theme="dark"] .logo-on-light { display: none; }
+:root[data-theme="dark"] .logo-on-dark { display: block; }
 
 /* ---------------------------------------------------------------- numbers and facts: no boxes */
 .stats { display: flex; flex-wrap: wrap; gap: 14px 44px; }
@@ -255,5 +265,5 @@ td .btn.small { min-height: 28px; padding: 3px 10px; }
 .front { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 32px 20px; background: var(--ke-black); color: var(--ke-paper); }
 .front-box { width: min(340px, 100%); display: flex; flex-direction: column; gap: 18px; }
 .front-brand { display: flex; align-items: center; gap: 12px; }
-.front-wordmark { display: block; height: 30px; width: auto; }
+.front-name { font-size: var(--ke-size-title); font-weight: 700; letter-spacing: 0.04em; color: var(--ke-white); }
 .front h1 { font-size: var(--ke-size-subtitle); }
