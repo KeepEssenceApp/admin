@@ -229,6 +229,7 @@ export const zh = {
   "audit.a.user.sign_out": "让全部设备退出",
   "audit.a.user.device_revoke": "撤销设备",
   "audit.a.user.delete": "删除账户",
+  "audit.a.user.delete_self": "用户自己删除了账户",
   "audit.a.portal.sign_in": "登录后台",
   "audit.a.portal.sign_out": "退出后台",
   "audit.a.portal.lockout": "口令连续输错，被限速",

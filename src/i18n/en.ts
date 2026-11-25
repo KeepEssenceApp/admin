@@ -230,6 +230,7 @@ export const en: Record<keyof typeof zh, string> = {
   "audit.a.user.sign_out": "Sign out all devices",
   "audit.a.user.device_revoke": "Revoke a device",
   "audit.a.user.delete": "Delete account",
+  "audit.a.user.delete_self": "Account deleted by its owner",
   "audit.a.portal.sign_in": "Sign in to the portal",
   "audit.a.portal.sign_out": "Sign out of the portal",
   "audit.a.portal.lockout": "Too many wrong passwords; attempts limited",
