@@ -10,8 +10,13 @@ const dict: Record<Lang, Record<Key, string>> = { zh, en };
 export const lang = (): Lang => ((typeof navigator === "undefined" ? "en" : navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en");
 if (typeof document !== "undefined") document.documentElement.lang = lang() === "zh" ? "zh-Hans" : "en";
 
+// `{n}` is a value. `{s:n}` is the plural "s" of an English word: nothing when `n` is 1.
 const fill = (s: string, vars?: Record<string, string | number>) =>
-  vars ? s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : s;
+  vars
+    ? s
+        .replace(/\{s:(\w+)\}/g, (m, k) => (k in vars ? (Number(vars[k]) === 1 ? "" : "s") : m))
+        .replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m))
+    : s;
 
 export const t = (key: Key, vars?: Record<string, string | number>) => fill(dict[lang()][key], vars);
 /** A string whose key is built from a code the server sent; the code itself when there is none. */
