@@ -100,6 +100,24 @@ export interface AuditEntry {
   detail: string;
   source: string;
 }
+export interface FeedbackEntry {
+  id: string;
+  at: string;
+  user_id: string;
+  email: string;
+  client: string;
+  where: string;
+  doing: string;
+  wrong: string;
+  wish: string;
+  issue_url: string | null;
+  forward_error: string | null;
+}
+export interface Feedback {
+  forwarding: string | null;
+  feedback: FeedbackEntry[];
+  next_cursor: string | null;
+}
 export interface Audit {
   entries: AuditEntry[];
   next_cursor: string | null;

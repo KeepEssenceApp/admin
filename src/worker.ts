@@ -314,6 +314,7 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
 
   if (path === "/api/users" && method === "GET") return relay(await core(env, "GET", "/admin/users" + pick(url, ["q", "status", "cursor", "limit"])));
   if (path === "/api/usage" && method === "GET") return relay(await core(env, "GET", "/admin/usage" + pick(url, ["days"])));
+  if (path === "/api/feedback" && method === "GET") return relay(await core(env, "GET", "/admin/feedback" + pick(url, ["cursor", "limit"])));
   if (path === "/api/audit" && method === "GET") return relay(await core(env, "GET", "/admin/audit" + pick(url, ["cursor", "limit"])));
 
   const parts = path.split("/").slice(2); // ["users", id, …]

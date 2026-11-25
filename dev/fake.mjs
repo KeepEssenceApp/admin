@@ -296,6 +296,13 @@ export async function handle(req, res) {
     return send(res, 200, { days: usageDays(days), top_users });
   }
 
+  if (path === "/admin/feedback" && method === "GET") {
+    const list = [
+      { id: "fb_0002", at: iso(Date.now() - 3600e3), user_id: "usr_0001", email: db.users[0]?.email ?? "ann@example.com", client: "web", where: "web", doing: "刚登录进来。", wrong: "不知道从哪里开始。\n第二行。", wish: "给一个指引。", issue_url: null, forward_error: null },
+      { id: "fb_0001", at: iso(Date.now() - 7200e3), user_id: "usr_0002", email: db.users[1]?.email ?? "bo@example.com", client: "web", where: "android", doing: "", wrong: "分享菜单里找不到。", wish: "", issue_url: "https://github.com/example/feedback/issues/1", forward_error: null },
+    ];
+    return send(res, 200, { forwarding: null, ...page(list, url, "feedback") });
+  }
   if (path === "/admin/audit") {
     if (method === "GET") return send(res, 200, page([...db.audit].reverse(), url, "entries"));
     if (method === "POST") {

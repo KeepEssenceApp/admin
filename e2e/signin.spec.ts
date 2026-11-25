@@ -4,7 +4,7 @@ import { ADMIN_SECRET, CHANGE, PASSWORD, auditEntries, lockedAddress, reset, sig
 
 test.beforeEach(async ({ request }) => reset(request));
 
-const READS = ["/api/session", "/api/overview", "/api/waitlist", "/api/waitlist.csv", "/api/invites", "/api/users", "/api/users/usr_0001", "/api/usage?days=7", "/api/audit", "/api/nothing"];
+const READS = ["/api/session", "/api/overview", "/api/waitlist", "/api/waitlist.csv", "/api/invites", "/api/users", "/api/users/usr_0001", "/api/usage?days=7", "/api/audit", "/api/feedback", "/api/nothing"];
 const CHANGES: [string, string, unknown][] = [
   ["DELETE", "/api/session", undefined],
   ["POST", "/api/waitlist/invite", { emails: ["new.ada@example.com"] }],

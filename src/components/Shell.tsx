@@ -5,13 +5,14 @@ import { t, type Key } from "../i18n";
 import { useRoute } from "../router";
 import { Logo, Said } from "./ui";
 
-export type Entry = "overview" | "waitlist" | "invites" | "users" | "usage" | "audit";
+export type Entry = "overview" | "waitlist" | "invites" | "users" | "usage" | "feedback" | "audit";
 const ENTRIES: { id: Entry; href: string; label: Key }[] = [
   { id: "overview", href: "/", label: "nav.overview" },
   { id: "waitlist", href: "/waitlist", label: "nav.waitlist" },
   { id: "invites", href: "/invites", label: "nav.invites" },
   { id: "users", href: "/users", label: "nav.users" },
   { id: "usage", href: "/usage", label: "nav.usage" },
+  { id: "feedback", href: "/feedback", label: "nav.feedback" },
   { id: "audit", href: "/audit", label: "nav.audit" },
 ];
 
