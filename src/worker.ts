@@ -314,6 +314,10 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
 
   if (path === "/api/users" && method === "GET") return relay(await core(env, "GET", "/admin/users" + pick(url, ["q", "status", "cursor", "limit"])));
   if (path === "/api/usage" && method === "GET") return relay(await core(env, "GET", "/admin/usage" + pick(url, ["days"])));
+  if (path === "/api/fetch" && method === "GET") return relay(await core(env, "GET", "/admin/fetch"));
+  // The keys go straight through to the core and are never logged or echoed here.
+  if (path === "/api/fetch" && method === "POST") return relay(await core(env, "PUT", "/admin/fetch", await readJson(request)));
+  if (path === "/api/fetch/test" && method === "POST") return relay(await core(env, "POST", "/admin/fetch/test", await readJson(request)));
   if (path === "/api/feedback" && method === "GET") return relay(await core(env, "GET", "/admin/feedback" + pick(url, ["cursor", "limit"])));
   if (path === "/api/audit" && method === "GET") return relay(await core(env, "GET", "/admin/audit" + pick(url, ["cursor", "limit"])));
 

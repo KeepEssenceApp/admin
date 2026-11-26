@@ -100,6 +100,36 @@ export interface AuditEntry {
   detail: string;
   source: string;
 }
+export type ProviderId = "direct" | "jina" | "firecrawl";
+export interface FetchProvider {
+  enabled: boolean;
+  endpoint: string;
+  key_set: boolean;
+  key_hint: string;
+}
+export interface FetchLast {
+  at: string;
+  url_host: string;
+  ok: boolean;
+  chars: number;
+  ms: number;
+  error: string;
+}
+export interface FetchSystem {
+  order: ProviderId[];
+  jina: FetchProvider;
+  firecrawl: FetchProvider;
+  tests: Record<ProviderId, FetchLast | null>;
+  stats: { days: number; rows: { platform: string; path: string; n: number }[] };
+}
+export interface FetchTest {
+  provider: ProviderId;
+  ok: boolean;
+  chars: number;
+  ms: number;
+  error: string;
+  title: string;
+}
 export interface FeedbackEntry {
   id: string;
   at: string;

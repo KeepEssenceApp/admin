@@ -39,6 +39,8 @@ a { color: inherit; text-decoration: none; }
 .sentence { font-size: var(--ke-size-item); padding: 28px 0; }
 .break { overflow-wrap: anywhere; }
 .pre { white-space: pre-wrap; }
+.system-order, .system-tests { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.system input[type="text"], .system input[type="password"] { max-width: 640px; }
 .feedback-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
 .feedback-list .label { display: block; }
 .nowrap { white-space: nowrap; }

@@ -296,6 +296,30 @@ export async function handle(req, res) {
     return send(res, 200, { days: usageDays(days), top_users });
   }
 
+  if (path === "/admin/fetch" || path === "/admin/fetch/test") {
+    const f = (db.fetch ??= { order: ["direct", "jina", "firecrawl"], jina: { enabled: false, endpoint: "", key: "" }, firecrawl: { enabled: false, endpoint: "", key: "" }, tests: { direct: null, jina: null, firecrawl: null } });
+    // What is shown of a stored value: whether there is one, and its last four characters.
+    const shown = (v) => ({ key_set: !!v, key_hint: v.length >= 12 ? `…${v.slice(-4)}` : "" });
+    const view = () => ({
+      order: f.order,
+      jina: { enabled: f.jina.enabled, endpoint: f.jina.endpoint, ...shown(f.jina.key) },
+      firecrawl: { enabled: f.firecrawl.enabled, endpoint: f.firecrawl.endpoint, ...shown(f.firecrawl.key) },
+      tests: f.tests,
+      stats: { days: 7, rows: [{ platform: "other", path: "direct", n: 41 }, { platform: "wechat", path: "none", n: 3 }, { platform: "xiaohongshu", path: "none", n: 2 }] },
+    });
+    if (path === "/admin/fetch" && method === "GET") return send(res, 200, view());
+    const b = method === "GET" ? {} : await body(req);
+    if (path === "/admin/fetch" && method === "PUT") {
+      if (b.order) f.order = b.order;
+      for (const id of ["jina", "firecrawl"]) if (b[id]) Object.assign(f[id], b[id]);
+      return send(res, 200, view());
+    }
+    if (path === "/admin/fetch/test" && method === "POST") {
+      const ok = b.provider === "direct";
+      f.tests[b.provider] = { at: iso(Date.now()), url_host: new URL(b.url).hostname, ok, chars: ok ? 2400 : 0, ms: 380, error: ok ? "" : "status 403" };
+      return send(res, 200, { provider: b.provider, ok, chars: ok ? 2400 : 0, ms: 380, error: ok ? "" : "status 403", title: ok ? "一篇文章" : "" });
+    }
+  }
   if (path === "/admin/feedback" && method === "GET") {
     const list = [
       { id: "fb_0002", at: iso(Date.now() - 3600e3), user_id: "usr_0001", email: db.users[0]?.email ?? "ann@example.com", client: "web", where: "web", doing: "刚登录进来。", wrong: "不知道从哪里开始。\n第二行。", wish: "给一个指引。", issue_url: null, forward_error: null },

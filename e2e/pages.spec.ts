@@ -4,7 +4,7 @@ import { isPhone, reset, row, setFake, signIn } from "./helpers";
 
 test.beforeEach(async ({ request }) => reset(request));
 
-test("the eight entries: a left rail on wide screens, a menu at the top on phones", async ({ page }, info) => {
+test("the nine entries: a left rail on wide screens, a menu at the top on phones", async ({ page }, info) => {
   await signIn(page);
   const entries = page.locator(".nav-entry");
   const menu = page.getByRole("button", { name: "菜单" });
@@ -22,7 +22,7 @@ test("the eight entries: a left rail on wide screens, a menu at the top on phone
     expect(box.width).toBeLessThan(260);
     expect(box.height).toBeGreaterThan(800);
   }
-  await expect(entries).toHaveText(["概览", "报名名单", "邀请", "用户", "用量", "反馈", "记录", "退出"]);
+  await expect(entries).toHaveText(["概览", "报名名单", "邀请", "用户", "用量", "反馈", "系统", "记录", "退出"]);
   await expect(page.locator('.nav-entry[aria-current="page"]')).toHaveText("概览");
 
   for (const [entry, path, title] of [["waitlist", "/waitlist", "报名名单"], ["invites", "/invites", "邀请"], ["users", "/users", "用户"], ["usage", "/usage", "用量"], ["audit", "/audit", "记录"], ["overview", "/", "概览"]]) {
@@ -331,7 +331,7 @@ test.describe("in English", () => {
     await signIn(page, "/waitlist");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     if (isPhone(info)) await page.getByRole("button", { name: "Menu" }).click();
-    await expect(page.locator(".nav-entry")).toHaveText(["Overview", "Waitlist", "Invitations", "Users", "Usage", "Feedback", "Audit log", "Sign out"]);
+    await expect(page.locator(".nav-entry")).toHaveText(["Overview", "Waitlist", "Invitations", "Users", "Usage", "Feedback", "System", "Audit log", "Sign out"]);
     await expect(page.getByTestId("waitlist-summary")).toHaveText("10 people · 6 new · 2 invited · 2 joined");
     await expect(row(page, "new.bo@example.com")).toContainText("WeChat File Transfer, Other: 备忘录");
     await page.goto("/");
@@ -361,4 +361,28 @@ test("feedback: what users wrote is listed with who wrote it, and whether it was
   await expect(rows.first().locator("a").first()).toHaveAttribute("href", "/users/usr_0001");
   await expect(rows.nth(1).getByRole("link", { name: "打开 issue" })).toHaveAttribute("href", "https://github.com/example/feedback/issues/1");
   await expect(page.getByTestId("feedback-forwarding")).toContainText("FEEDBACK_GITHUB_REPO");
+});
+
+test("system: reader services are off until turned on; a key is never shown again; a test read says how it went", async ({ page }) => {
+  await signIn(page, "/system");
+  const save = page.getByTestId("system-save");
+  await expect(page.getByTestId("system-order").locator("li")).toHaveCount(3);
+  await expect(page.getByTestId("system-jina-enabled")).not.toBeChecked();
+  await expect(page.getByTestId("system-firecrawl-enabled")).not.toBeChecked();
+  await expect(save).toBeDisabled();
+  await page.getByTestId("system-jina-enabled").check();
+  await page.getByTestId("system-jina-key").fill("bbbbbbbbbbbb9876");
+  await save.click();
+  await expect(page.getByTestId("system-jina-enabled")).toBeChecked();
+  await expect(page.getByTestId("system-jina-key")).toHaveValue("");
+  await expect(page.getByTestId("system-jina-key")).toHaveAttribute("placeholder", /…9876/);
+  expect(await page.content()).not.toContain("bbbbbbbbbbbb");
+  await expect(save).toBeDisabled();
+  // A test read with each way.
+  await page.getByTestId("system-test-url").fill("https://example.org/article");
+  await page.getByTestId("system-tests").locator('[data-provider="direct"] button').click();
+  await expect(page.getByTestId("system-result-direct")).toContainText("2,400");
+  await page.getByTestId("system-tests").locator('[data-provider="jina"] button').click();
+  await expect(page.getByTestId("system-result-jina")).toContainText("403");
+  await expect(page.getByTestId("system-stats").locator("tr")).toHaveCount(3);
 });

@@ -5,6 +5,7 @@ import { Loading } from "./components/ui";
 import { t } from "./i18n";
 import { AuditPage } from "./pages/Audit";
 import { FeedbackPage } from "./pages/Feedback";
+import { SystemPage } from "./pages/System";
 import { InvitesPage } from "./pages/Invites";
 import { OverviewPage } from "./pages/Overview";
 import { SignIn } from "./pages/SignIn";
@@ -29,6 +30,8 @@ function page(path: string): { entry: Entry; title: string; view: preact.Compone
       return { entry: "usage", title: t("nav.usage"), view: <UsagePage /> };
     case "/feedback":
       return { entry: "feedback", title: t("nav.feedback"), view: <FeedbackPage /> };
+    case "/system":
+      return { entry: "system", title: t("nav.system"), view: <SystemPage /> };
     case "/audit":
       return { entry: "audit", title: t("nav.audit"), view: <AuditPage /> };
     default:
