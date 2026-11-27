@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { csvCell, waitlistCsv } from "../src/shared/csv";
 import { isEmail, parseEmails } from "../src/shared/emails";
-import { joinStatus, waitlistCounts, type Invite, type Signup } from "../src/shared/waitlist";
+import { joinStatus, mailLanguages, waitlistCounts, type Invite, type Signup } from "../src/shared/waitlist";
 import { CSV_HEAD, LABELS, label, labels } from "../src/i18n/labels";
 import { bytes } from "../src/i18n";
 import { ROOT } from "./helpers";
@@ -139,5 +139,32 @@ describe("storage size", () => {
     expect(bytes(1536)).toBe("1.5 KB");
     expect(bytes(734_003_200)).toBe("700 MB");
     expect(bytes(5 * 1024 ** 3)).toBe("5 GB");
+  });
+});
+
+describe("the language of the invitation mail", () => {
+  it("is the page the person signed up from, in the core's names: zh-Hans is zh, en is en", () => {
+    const rows = [signup("ada@example.com", { lang: "en" }), signup("bo@example.com", { lang: "zh-Hans" }), signup("cy@example.com", { lang: "zh" }), signup("dee@example.com", { lang: "en-GB" })];
+    expect(mailLanguages(rows, ["ada@example.com", "bo@example.com", "cy@example.com", "dee@example.com"])).toEqual({
+      "ada@example.com": "en",
+      "bo@example.com": "zh",
+      "cy@example.com": "zh",
+      "dee@example.com": "en",
+    });
+  });
+
+  it("matches emails the way the list does (trimmed, lower-cased), and only the ones asked for", () => {
+    const rows = [signup(" Ada@Example.com ", { lang: "en" }), signup("bo@example.com", { lang: "zh-Hans" })];
+    expect(mailLanguages(rows, ["ADA@example.com"])).toEqual({ "ada@example.com": "en" });
+  });
+
+  it("leaves out a language that is neither, and an email with no sign-up row, so the core uses its default", () => {
+    const rows = [signup("ada@example.com", { lang: "fr" }), signup("bo@example.com", { lang: "" })];
+    expect(mailLanguages(rows, ["ada@example.com", "bo@example.com", "nobody@example.com"])).toEqual({});
+  });
+
+  it("takes the newest of several rows for one email (the list comes newest first)", () => {
+    const rows = [signup("ada@example.com", { id: 2, lang: "zh-Hans" }), signup("ada@example.com", { id: 1, lang: "en" })];
+    expect(mailLanguages(rows, ["ada@example.com"])).toEqual({ "ada@example.com": "zh" });
   });
 });

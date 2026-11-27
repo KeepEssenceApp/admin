@@ -135,7 +135,7 @@ test("when mail is configured the code can still be fetched, for when the mail d
   await setFake(request, { mail_configured: true });
   await signIn(page, "/invites");
   await expect(page.locator("tbody tr")).toHaveCount(68);
-  await expect(page.getByTestId("mail-note")).toHaveText("发信服务配好了，验证码会发到对方的邮箱。对方没收到时，可以在这里取出来转给他。");
+  await expect(page.getByTestId("mail-note")).toHaveText("发信服务配好了：邀请之后会发一封邀请通知，登录验证码也会发到对方的邮箱。对方没收到验证码时，可以在这里取出来转给他。");
   await expect(row(page, "pending.kai@example.com").getByRole("button", { name: "取登录验证码" })).toBeVisible();
   await expect(row(page, "pending.kai@example.com").getByRole("button", { name: "撤回" })).toBeVisible();
 });

@@ -15,11 +15,43 @@ export interface Signup {
   invited_at: string | null;
 }
 
+/**
+ * The invitation notice mail, as the core reports it (spec product/mail.md). `reason` is a fixed machine
+ * value (failed: refused, error or unconfirmed; not_sent: no_mail_service), never a provider's words.
+ */
+export interface InviteMail {
+  state: string;
+  at: string | null;
+  reason: string | null;
+}
+
 export interface Invite {
   email: string;
   invited_at: string;
   joined_at: string | null;
   user_id: string | null;
+  /** The language the notice mail was asked for in. Absent or null from a core that predates the mail. */
+  lang?: "zh" | "en" | null;
+  /** Null: an invitation from before the notice mail existed. Absent: a core that predates it. */
+  mail?: InviteMail | null;
+}
+
+/**
+ * The language of each person's notice mail: the page they signed up from. The sign-up form records
+ * `zh-Hans` or `en`; the core names `zh` and `en`. A language that is neither is left out, and the core
+ * then uses its default. With several rows for one email the newest (the first, they come newest first) wins.
+ */
+export function mailLanguages(signups: Pick<Signup, "email" | "lang">[], emails: string[]): Record<string, "zh" | "en"> {
+  const wanted = new Set(emails.map((e) => e.trim().toLowerCase()));
+  const out: Record<string, "zh" | "en"> = {};
+  for (const s of signups) {
+    const email = s.email.trim().toLowerCase();
+    if (!wanted.has(email) || email in out) continue;
+    const lang = s.lang.trim().toLowerCase();
+    if (lang === "zh" || lang.startsWith("zh-")) out[email] = "zh";
+    else if (lang === "en" || lang.startsWith("en-")) out[email] = "en";
+  }
+  return out;
 }
 
 export type SignupStatus = "new" | "invited" | "joined";

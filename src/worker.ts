@@ -25,7 +25,7 @@
 import { waitlistCsv } from "./shared/csv";
 import { isEmail, parseEmails } from "./shared/emails";
 import { COOKIE, SESSION_TTL_MS, clearedCookie, readCookie, sameText, sessionCookie, sha256Hex, signSession, verifySession } from "./shared/session";
-import { joinStatus, waitlistCounts, type Invite, type Signup } from "./shared/waitlist";
+import { joinStatus, mailLanguages, waitlistCounts, type Invite, type Signup } from "./shared/waitlist";
 
 interface Statement {
   bind(...values: unknown[]): Statement;
@@ -209,10 +209,24 @@ interface InviteResult {
 }
 const list = (value: unknown): string[] => (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []);
 
+/**
+ * The language each of these people signed up in, for the core's invitation mail. Best effort: with no
+ * sign-up list, or no row for an email, the email gets no entry and the core uses its default.
+ */
+async function languagesFor(env: Env, emails: string[]): Promise<Record<string, "zh" | "en">> {
+  if (!env.WAITLIST) return {};
+  try {
+    return mailLanguages(await signups(env), emails);
+  } catch {
+    return {};
+  }
+}
+
 /** Puts emails on the core's invitation list, then notes the time in the sign-up list. */
 async function invite(env: Env, emails: string[]): Promise<InviteResult> {
   if (!emails.length) return { added: [], already: [], invalid: [] };
-  const answer = await coreJson<Partial<InviteResult>>(env, "POST", "/admin/invites", { emails });
+  const langs = await languagesFor(env, emails);
+  const answer = await coreJson<Partial<InviteResult>>(env, "POST", "/admin/invites", Object.keys(langs).length ? { emails, langs } : { emails });
   const result = { added: list(answer.added), already: list(answer.already), invalid: list(answer.invalid) };
   await markInvited(env, [...result.added, ...result.already], new Date().toISOString());
   return result;

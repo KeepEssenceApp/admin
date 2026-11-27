@@ -21,6 +21,9 @@
 - **`crypto.subtle.verify` 的参数类型。** 新版 TypeScript 里 `Uint8Array` 默认是 `Uint8Array<ArrayBufferLike>`，传给 Web Crypto 会报类型错；解码函数的返回类型要写成 `Uint8Array<ArrayBuffer>`。
 - **Worker 的类型没有装 `@cloudflare/workers-types`。** 它和 DOM 的类型放在同一个 tsconfig 里会打架。`src/worker.ts` 自己写了用到的那几个接口（D1 的 `prepare/bind/first/all/run/batch`、`fetch`）。
 
+- **报名表的语言叫 `zh-Hans`，核心叫 `zh`。** 邀请通知要按报名时的页面语言发，后台交给核心的是核心的名字：`zh-Hans`（和以 `zh-` 开头的）换成 `zh`，`en`（和 `en-` 开头的）换成 `en`，别的不交，核心用缺省的英文。同一个邮箱有几行报名时用最新的一行。`tests/waitlist.test.ts` 的 `mailLanguages` 有测试。
+- **「失败」要按原因分开显示，认不出的按「结果未知」。** 核心给的原因是固定的几个值（`refused`、`error`、`unconfirmed`）；`unconfirmed` 的意思是信可能已经发出，所以不写「撤回再邀请」的建议，改写「再邀请可能让对方收到第二封」。核心将来加了新的原因、或者一个失败没带原因时，后台按 `unconfirmed` 显示，不当成确定失败。端到端里用假核心的 `invite_mail` 钩子摆出各种状态，`old_core` 钩子摆出还没有这两个字段的旧核心（列表照常显示，邀请通知那一列是「—」）。
+
 ## 测试
 
 - **假核心每个测试前重置，报名数据库不重置。** 本地的 D1 只在 `dev/start.mjs` 启动时重建。因为状态看核心，重置假核心之后名单的状态就回到初始；`invited_at` 会留着上一个测试写的时间，所以测试只断言它「有」或「没有」。
