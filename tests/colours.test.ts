@@ -79,13 +79,40 @@ describe("colours", () => {
     expect(hits).toEqual([]);
   });
 
-  it("uses only the token radii (0, 4, 6, 10) and circles", () => {
+  it("has the spec's one scale of rounding in its copy of the tokens (spec e139a47)", () => {
+    const radii = Object.fromEntries([...read("design/tokens.css").matchAll(/(--ke-radius[a-z-]*)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+    expect(radii).toEqual({
+      "--ke-radius-mark": "0",
+      "--ke-radius-tag": "8px",
+      "--ke-radius": "14px",
+      "--ke-radius-card": "20px",
+      "--ke-radius-sheet": "28px",
+      "--ke-radius-control": "999px",
+    });
+  });
+
+  it("uses only the token radii (0, 8, 14, 20, 28 and the pill) and circles", () => {
     const bad: string[] = [];
     for (const m of strip(read("src/styles/app.css")).matchAll(/border-radius\s*:\s*([^;]+);/g)) {
       const parts = m[1].trim().split(/\s+/);
-      if (!parts.every((p) => /^var\(--ke-radius(-mark|-tag|-sheet)?\)$/.test(p) || p === "0" || p === "50%")) bad.push(m[1]);
+      if (!parts.every((p) => /^var\(--ke-radius(-mark|-tag|-card|-sheet|-control)?\)$/.test(p) || p === "0" || p === "50%")) bad.push(m[1]);
     }
     expect(bad).toEqual([]);
+  });
+
+  it("rounds fields, buttons and sheets by the level the spec names for each", () => {
+    // Fields 14, buttons and the segmented switch a pill, a dialog the sheet's 28 (its top corners on a phone, as in the web client).
+    const css = strip(read("src/styles/app.css"));
+    const radiusOf = (selector: string) =>
+      [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter((m) => m[1].split(",").map((s) => s.trim().replace(/\s+/g, " ")).includes(selector))
+        .flatMap((m) => [...m[2].matchAll(/border-radius\s*:\s*([^;]+?)\s*(?:;|$)/g)].map((r) => r[1]));
+    expect(radiusOf('input[type="text"]')).toEqual(["var(--ke-radius)"]);
+    expect(radiusOf("textarea")).toEqual(["var(--ke-radius)"]);
+    expect(radiusOf("select")).toEqual(["var(--ke-radius)"]);
+    expect(radiusOf(".btn")).toEqual(["var(--ke-radius-control)"]);
+    expect(radiusOf(".segments")).toEqual(["var(--ke-radius-control)"]);
+    expect(radiusOf(".sheet")).toEqual(["var(--ke-radius-sheet)", "var(--ke-radius-sheet) var(--ke-radius-sheet) 0 0"]);
   });
 
   it("keeps the page and the icons within the token colours", () => {
@@ -97,9 +124,14 @@ describe("colours", () => {
   });
 
   it("has no green and no yellow among the tokens it relies on", () => {
-    // Red is the only functional colour. Gold is in the token file but the portal's own interface never uses it.
+    // Red is the only functional colour. Gold and its text colour (--ke-gold-ink: #795600 light, #F2D27D dark) are in the token
+    // file, but the portal's own interface never uses either.
     expect([...tokenColours()].sort()).toEqual(
-      ["#0B0B0B", "#161616", "#1F1F1F", "#2C2C2C", "#4A4A4A", "#6B6B6B", "#929290", "#B3261E", "#B9B9B5", "#C5A229", "#DEDEDA", "#EAEAE7", "#F2877B", "#F5F5F3", "#FFFFFF"].sort(),
+      [
+        "#0B0B0B", "#191817", "#252321", "#292725", "#343231", "#383532", "#45403D", "#605B59", "#625C57", "#795600",
+        "#B3261E", "#BDB5AF", "#C5A229", "#D7D1CF", "#DDD7D2", "#EEECEC", "#EFEBE7", "#F2877B", "#F2D27D", "#F5F5F3",
+        "#F6F3F0", "#F9F6F4", "#FFFDFC", "#FFFFFF",
+      ].sort(),
     );
   });
 
