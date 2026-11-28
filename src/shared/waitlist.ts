@@ -81,6 +81,38 @@ export function joinStatus(signups: Signup[], invites: Invite[]): SignupRow[] {
   });
 }
 
+/** What the core answered to an invitation: who it put on the list, who was on it already, what it did not take. */
+export interface InviteAnswer {
+  added: string[];
+  already: string[];
+  invalid: string[];
+}
+
+/** The sentence to say after inviting from the sign-up list: a dictionary key, its values, and whether it is a failure. */
+export interface InviteNote {
+  key: "waitlist.done_one" | "waitlist.done_one_already" | "waitlist.done_many" | "invites.add_invalid";
+  vars: Record<string, string | number>;
+  bad: boolean;
+}
+
+/**
+ * Picks the sentence from the core's answer, not from how many were submitted. For one person that is the
+ * difference between "asked for a mail" (the core put the address on the list) and "nothing new" (it was on
+ * the list already, so the core touched nothing and asked for no mail), as when a second operator invites
+ * from a page that was opened before the first one did. An address the core did not take, or one its answer
+ * does not mention, is said as not taken: nothing was invited. Several people: the counts, as ever.
+ */
+export function inviteNote(emails: string[], answer: InviteAnswer): InviteNote {
+  if (emails.length !== 1) {
+    return { key: "waitlist.done_many", vars: { added: answer.added.length, already: answer.already.length }, bad: false };
+  }
+  const email = emails[0];
+  const has = (list: string[]) => list.some((e) => e.trim().toLowerCase() === email.trim().toLowerCase());
+  if (has(answer.added)) return { key: "waitlist.done_one", vars: { email }, bad: false };
+  if (has(answer.already)) return { key: "waitlist.done_one_already", vars: { email }, bad: false };
+  return { key: "invites.add_invalid", vars: { list: email }, bad: true };
+}
+
 /** Sign-ups, how many of them were invited (joined ones included), how many joined. */
 export function waitlistCounts(rows: SignupRow[]) {
   const joined = rows.filter((r) => r.status === "joined").length;

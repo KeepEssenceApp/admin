@@ -107,6 +107,7 @@ export const zh = {
   "waitlist.empty": "还没有人报名。",
   "waitlist.none_match": "没有符合的报名。",
   "waitlist.done_one": "已邀请 {email}，这个邮箱可以登录了。配好发信服务时会请求发一封邀请通知，结果在「邀请」页看。",
+  "waitlist.done_one_already": "{email} 本来就在邀请名单里，这次没有再请求邀请通知，原来的状态在「邀请」页看。",
   "waitlist.done_many": "已邀请 {added} 人，另有 {already} 人本来就在邀请名单里。配好发信服务时，每个新邀请的人会请求发一封邀请通知，结果在「邀请」页看。",
 
   "invites.add": "加一个或粘贴一批邮箱",

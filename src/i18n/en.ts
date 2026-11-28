@@ -108,7 +108,8 @@ export const en: Record<keyof typeof zh, string> = {
   "waitlist.empty": "Nobody has signed up yet.",
   "waitlist.none_match": "No sign-up matches.",
   "waitlist.done_one": "Invited {email}. This email can sign in now. When mail is configured, one invitation mail is requested; its state is on Invitations.",
-  "waitlist.done_many": "Invited {added} people; {already} more were already on the invitation list. When mail is configured, one invitation mail is requested for each newly invited person; its state is on Invitations.",
+  "waitlist.done_one_already": "{email} was already on the invitation list, so no new invitation mail was requested. Its state is on Invitations.",
+  "waitlist.done_many": "New invitations: {added}. Already on the invitation list: {already}. When mail is configured, one invitation mail is requested for each new invitation; its state is on Invitations.",
 
   "invites.add": "Add one email or paste many",
   "invites.add_hint": "One per line, or separated by commas. Inviting also asks for one invitation mail to be sent (when mail is configured), once per invitation.",

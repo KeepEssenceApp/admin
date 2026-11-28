@@ -1,12 +1,14 @@
 // The sign-up list: the spreadsheet guard, pasted emails, and the status of each row.
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { csvCell, waitlistCsv } from "../src/shared/csv";
 import { isEmail, parseEmails } from "../src/shared/emails";
-import { joinStatus, mailLanguages, waitlistCounts, type Invite, type Signup } from "../src/shared/waitlist";
+import { inviteNote, joinStatus, mailLanguages, waitlistCounts, type Invite, type InviteAnswer, type Signup } from "../src/shared/waitlist";
 import { CSV_HEAD, LABELS, label, labels } from "../src/i18n/labels";
-import { bytes } from "../src/i18n";
+import { bytes, t } from "../src/i18n";
+import { zh } from "../src/i18n/zh";
+import { en } from "../src/i18n/en";
 import { ROOT } from "./helpers";
 
 const signup = (email: string, more: Partial<Signup> = {}): Signup => ({
@@ -166,5 +168,120 @@ describe("the language of the invitation mail", () => {
   it("takes the newest of several rows for one email (the list comes newest first)", () => {
     const rows = [signup("ada@example.com", { id: 2, lang: "zh-Hans" }), signup("ada@example.com", { id: 1, lang: "en" })];
     expect(mailLanguages(rows, ["ada@example.com"])).toEqual({ "ada@example.com": "zh" });
+  });
+});
+
+// The sentence after inviting from the sign-up list follows what the core answered, not how many were submitted.
+// Synthetic data only: example.com addresses, an in-memory stand-in for the core, nothing is sent anywhere.
+describe("the sentence after inviting from the sign-up list", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const say = (lang: "zh-CN" | "en-GB", emails: string[], answer: InviteAnswer) => {
+    vi.stubGlobal("navigator", { language: lang });
+    const note = inviteNote(emails, answer);
+    return { ...note, text: t(note.key, note.vars) };
+  };
+  /** As the core's POST /admin/invites: a new address is added, one on the list already is left alone. */
+  const fakeCore = () => {
+    const list = new Set<string>();
+    return (emails: string[]): InviteAnswer => {
+      const out: InviteAnswer = { added: [], already: [], invalid: [] };
+      for (const raw of emails) {
+        const email = raw.trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) out.invalid.push(raw);
+        else if (list.has(email)) out.already.push(email);
+        else {
+          list.add(email);
+          out.added.push(email);
+        }
+      }
+      return out;
+    };
+  };
+  const ASKED = "one invitation mail is requested";
+
+  it("one person, two operators: the first invite says a mail is requested, the second says it was already on the list and asks for nothing", () => {
+    const core = fakeCore();
+    const email = "new.ada@example.com";
+    const first = core([email]);
+    const second = core([email]);
+    expect([first.added, first.already]).toEqual([[email], []]);
+    expect([second.added, second.already]).toEqual([[], [email]]);
+
+    const zh1 = say("zh-CN", [email], first);
+    expect(zh1.key).toBe("waitlist.done_one");
+    expect(zh1.text).toContain("请求发一封邀请通知");
+    expect(zh1.bad).toBe(false);
+    const zh2 = say("zh-CN", [email], second);
+    expect(zh2.key).toBe("waitlist.done_one_already");
+    expect(zh2.text).toBe("new.ada@example.com 本来就在邀请名单里，这次没有再请求邀请通知，原来的状态在「邀请」页看。");
+    expect(zh2.text).not.toContain("请求发一封");
+    expect(zh2.text).not.toContain("已邀请");
+    expect(zh2.bad).toBe(false);
+
+    const en1 = say("en-GB", [email], first);
+    expect(en1.key).toBe("waitlist.done_one");
+    expect(en1.text).toContain(ASKED);
+    const en2 = say("en-GB", [email], second);
+    expect(en2.key).toBe("waitlist.done_one_already");
+    expect(en2.text).toBe("new.ada@example.com was already on the invitation list, so no new invitation mail was requested. Its state is on Invitations.");
+    expect(en2.text).not.toContain(ASKED);
+    expect(en2.text).not.toContain("Invited ");
+  });
+
+  it("matches the address the way the list does: trimmed, lower-cased", () => {
+    expect(inviteNote(["New.Ada@Example.com"], { added: [], already: ["new.ada@example.com"], invalid: [] }).key).toBe("waitlist.done_one_already");
+    expect(inviteNote([" new.ada@example.com "], { added: ["new.ada@example.com"], already: [], invalid: [] }).key).toBe("waitlist.done_one");
+  });
+
+  it("one person the core did not take (invalid), or its answer does not mention: the existing 'invalid' sentence, as a failure, never 'invited'", () => {
+    for (const answer of [{ added: [], already: [], invalid: ["bad.address"] }, { added: [], already: [], invalid: [] }]) {
+      const zh = say("zh-CN", ["bad.address"], answer);
+      expect(zh.key).toBe("invites.add_invalid");
+      expect(zh.text).toBe("无效的：bad.address");
+      expect(zh.bad).toBe(true);
+      const en = say("en-GB", ["bad.address"], answer);
+      expect(en.text).toBe("Invalid: bad.address");
+      expect(en.bad).toBe(true);
+      expect(en.text).not.toContain(ASKED);
+    }
+  });
+
+  it("an answer about other people does not decide it: only this address counts", () => {
+    const answer = { added: ["new.bo@example.com"], already: ["new.chen@example.com"], invalid: [] };
+    expect(inviteNote(["new.ada@example.com"], answer).key).toBe("invites.add_invalid");
+  });
+
+  it("several people keep the counts sentence, whatever the answer", () => {
+    const core = fakeCore();
+    const emails = ["new.ada@example.com", "new.bo@example.com"];
+    core(["new.bo@example.com"]);
+    const answer = core(emails);
+    expect([answer.added.length, answer.already.length]).toEqual([1, 1]);
+    const zh = say("zh-CN", emails, answer);
+    expect(zh.key).toBe("waitlist.done_many");
+    expect(zh.text).toBe("已邀请 1 人，另有 1 人本来就在邀请名单里。配好发信服务时，每个新邀请的人会请求发一封邀请通知，结果在「邀请」页看。");
+    expect(say("en-GB", emails, answer).text).toBe("New invitations: 1. Already on the invitation list: 1. When mail is configured, one invitation mail is requested for each new invitation; its state is on Invitations.");
+    // All of them already on the list: still the many-sentence (its counts say 0 and 2); that branch is not changed here.
+    const all = core(emails);
+    expect(inviteNote(emails, all).key).toBe("waitlist.done_many");
+    expect(say("en-GB", emails, all).text).toBe("New invitations: 0. Already on the invitation list: 2. When mail is configured, one invitation mail is requested for each new invitation; its state is on Invitations.");
+  });
+
+  it("the English counts sentence reads for any count, with no singular or plural to get wrong: 'label: number'", () => {
+    for (const [added, already] of [[2, 0], [0, 2], [1, 1], [1, 0], [0, 1], [5, 3]]) {
+      const answer = { added: Array.from({ length: added }, (_, i) => `a${i}@example.com`), already: Array.from({ length: already }, (_, i) => `b${i}@example.com`), invalid: [] };
+      const text = say("en-GB", ["x@example.com", "y@example.com"], answer).text;
+      expect(text).toBe(`New invitations: ${added}. Already on the invitation list: ${already}. When mail is configured, one invitation mail is requested for each new invitation; its state is on Invitations.`);
+      expect(text).not.toMatch(/people|were|more|Invited/);
+    }
+  });
+
+  it("the Chinese counts sentence is the one it was", () => {
+    expect(zh["waitlist.done_many"]).toBe("已邀请 {added} 人，另有 {already} 人本来就在邀请名单里。配好发信服务时，每个新邀请的人会请求发一封邀请通知，结果在「邀请」页看。");
+  });
+
+  it("has the new sentence in both languages, with the address in it", () => {
+    expect(zh["waitlist.done_one_already"]).toContain("{email}");
+    expect(en["waitlist.done_one_already"]).toContain("{email}");
   });
 });
