@@ -301,7 +301,7 @@ test("usage: per day for 7, 30 and 90 days with a plain bar, and the top account
   expect(widths).toHaveLength(90);
   expect(widths).toContain("100%");
   expect(new Set(widths).size).toBeGreaterThan(10);
-  expect(await page.locator(".bar > div").first().evaluate((el) => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\((11, 11, 11|245, 245, 243)\)$/);
+  expect(await page.locator(".bar > div").first().evaluate((el) => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\((37, 35, 33|246, 243, 240)\)$/);
   expect(await page.locator("main svg, main canvas").count()).toBe(0);
 
   const top = page.getByTestId("usage-top").locator("tr");
@@ -345,8 +345,8 @@ test.describe("dark and light", () => {
       const context = await browser.newContext({ ...info.project.use, colorScheme: scheme });
       const page = await context.newPage();
       await signIn(page);
-      await expect(page.locator("body")).toHaveCSS("background-color", scheme === "dark" ? "rgb(11, 11, 11)" : "rgb(245, 245, 243)");
-      await expect(page.locator("h1")).toHaveCSS("color", scheme === "dark" ? "rgb(245, 245, 243)" : "rgb(11, 11, 11)");
+      await expect(page.locator("body")).toHaveCSS("background-color", scheme === "dark" ? "rgb(25, 24, 23)" : "rgb(249, 246, 244)");
+      await expect(page.locator("h1")).toHaveCSS("color", scheme === "dark" ? "rgb(246, 243, 240)" : "rgb(37, 35, 33)");
       await context.close();
     });
   }
