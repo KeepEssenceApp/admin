@@ -5,7 +5,10 @@
 //
 // Besides /admin/… it has two hooks for the tests, without a secret:
 //   POST /__test/reset           back to the seed
-//   POST /__test/state           { mail_configured?, minute_ago_s?, hourly_ago_s? }
+//   POST /__test/state           { mail_configured?, minute_ago_s?, hourly_ago_s?, old_core?, invite_mail? }
+//                                old_core: GET /admin/invites leaves out lang and mail, as a core from before the mail did;
+//                                invite_mail: { "<email>": { state, at, reason } | null } sets an invitation's mail state
+//   GET  /__test/invite-requests the bodies POST /admin/invites got since the last reset
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
@@ -75,9 +78,20 @@ function seed() {
       usage,
     });
   }
+  // The notice mail of the invitations that have not joined, one of each kind that matters; those that joined
+  // were invited before the mail existed (mail: null).
+  const MAIL = {
+    "invited.lin@example.com": { state: "accepted", reason: null },
+    "invited.omar@example.com": { state: "failed", reason: "unconfirmed" },
+    "pending.kai@example.com": { state: "failed", reason: "refused" },
+    "pending.ines@example.com": { state: "queued", reason: null },
+  };
   const invites = [
-    ...PENDING.map((email, i) => ({ email, invited_at: iso(now - (i + 1) * 2 * 3_600_000) })),
-    ...users.map((u) => ({ email: u.email, invited_at: iso(new Date(u.created_at).getTime() - 6 * 3_600_000) })),
+    ...PENDING.map((email, i) => {
+      const invited = now - (i + 1) * 2 * 3_600_000;
+      return { email, invited_at: iso(invited), lang: i % 2 ? "en" : "zh", mail: { ...MAIL[email], at: iso(invited + 60_000) } };
+    }),
+    ...users.map((u) => ({ email: u.email, invited_at: iso(new Date(u.created_at).getTime() - 6 * 3_600_000), lang: null, mail: null })),
   ];
   const audit = [];
   const actions = ["invite.add", "login_code.mint", "user.sign_out", "portal.sign_in", "user.device_revoke"];
@@ -92,7 +106,7 @@ function seed() {
       source: action.startsWith("portal.") ? "portal" : "core",
     });
   }
-  return { users, invites, audit, codes: new Map(), auditSeq: 71, mail_configured: false, minute_ago_s: 95, hourly_ago_s: 1500 };
+  return { users, invites, audit, codes: new Map(), auditSeq: 71, mail_configured: false, minute_ago_s: 95, hourly_ago_s: 1500, old_core: false, invite_requests: [] };
 }
 
 let db = seed();
@@ -182,8 +196,15 @@ export async function handle(req, res) {
   }
   if (path === "/__test/state" && method === "POST") {
     const b = await body(req);
-    for (const key of ["mail_configured", "minute_ago_s", "hourly_ago_s"]) if (key in b) db[key] = b[key];
+    for (const key of ["mail_configured", "minute_ago_s", "hourly_ago_s", "old_core"]) if (key in b) db[key] = b[key];
+    for (const [email, mail] of Object.entries(b.invite_mail ?? {})) {
+      const invite = db.invites.find((i) => i.email === email);
+      if (invite) invite.mail = mail;
+    }
     return send(res, 200, { ok: true });
+  }
+  if (path === "/__test/invite-requests" && method === "GET") {
+    return send(res, 200, db.invite_requests);
   }
   if (!path.startsWith("/admin/")) return fail(res, 404, "not_found", "Not found.");
   if (!sameSecret(req.headers.authorization)) return fail(res, 401, "unauthorized", "The operator secret is missing or wrong.");
@@ -194,20 +215,40 @@ export async function handle(req, res) {
     if (method === "GET") {
       const byEmail = new Map(db.users.map((u) => [u.email, u]));
       const invites = db.invites
-        .map((i) => ({ email: i.email, invited_at: i.invited_at, joined_at: byEmail.get(i.email)?.created_at ?? null, user_id: byEmail.get(i.email)?.id ?? null }))
+        .map((i) => ({
+          email: i.email,
+          invited_at: i.invited_at,
+          joined_at: byEmail.get(i.email)?.created_at ?? null,
+          user_id: byEmail.get(i.email)?.id ?? null,
+          // A core from before the notice mail has neither field.
+          ...(db.old_core ? {} : { lang: i.lang ?? null, mail: i.mail ?? null }),
+        }))
         .sort((a, b) => b.invited_at.localeCompare(a.invited_at));
       return send(res, 200, { invites });
     }
     const b = await body(req);
     if (method === "POST") {
+      db.invite_requests.push(b);
       const given = Array.isArray(b.emails) ? b.emails : [b.email];
       const out = { added: [], already: [], invalid: [] };
+      const langOf = (email) => {
+        const per = b.langs && typeof b.langs === "object" ? b.langs[email] : undefined;
+        const v = per ?? b.lang;
+        return v === "zh" || v === "en" ? v : null;
+      };
       for (const raw of given) {
         const email = typeof raw === "string" ? raw.trim().toLowerCase() : "";
         if (!isEmail(email)) out.invalid.push(String(raw ?? ""));
         else if (db.invites.some((i) => i.email === email)) out.already.push(email);
         else {
-          db.invites.push({ email, invited_at: iso(Date.now()) });
+          const now = iso(Date.now());
+          db.invites.push({
+            email,
+            invited_at: now,
+            lang: langOf(email),
+            // As the core does: queued when mail can be sent, otherwise not sent for good.
+            mail: db.mail_configured ? { state: "queued", at: now, reason: null } : { state: "not_sent", at: now, reason: "no_mail_service" },
+          });
           out.added.push(email);
           log("invite.add", email);
         }

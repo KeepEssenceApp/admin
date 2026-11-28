@@ -208,7 +208,7 @@ test("invitations: the list with invited and joined times", async ({ page }) => 
   await expect(joined).toContainText(/2026年11月\d+日/);
   await expect(joined.getByRole("button", { name: "撤回" })).toHaveCount(0);
   await expect(joined.locator("a")).toHaveAttribute("href", "/users/usr_0001");
-  await expect(page.getByTestId("mail-note")).toHaveText("没配发信服务：邀请之后，在这里取登录验证码转给对方。");
+  await expect(page.getByTestId("mail-note")).toHaveText("没配发信服务：不会发邀请通知。邀请之后，在这里取登录验证码转给对方。");
 });
 
 test("users: the table, find, the status filter and paging", async ({ page }) => {
