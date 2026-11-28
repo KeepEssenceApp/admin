@@ -1,9 +1,9 @@
 import { useState } from "preact/hooks";
 import { ApiError, del, get, post } from "../api";
 import { Loading, Sheet, State, Table } from "../components/ui";
-import { clock, dateTime, t } from "../i18n";
+import { clock, dateTime, t, type Key } from "../i18n";
 import { say, sayError, useLoad } from "../lib";
-import type { InviteResult, Invites, LoginCode } from "../types";
+import type { Invite, InviteResult, Invites, LoginCode } from "../types";
 
 /** The code is held only while this panel is open. */
 function CodePanel({ email, code, onClose }: { email: string; code: LoginCode; onClose: () => void }) {
@@ -30,6 +30,38 @@ function CodePanel({ email, code, onClose }: { email: string; code: LoginCode; o
         {t("invites.code_expires", { time: clock(code.expires_at) })} {t("invites.code_once")}
       </p>
     </Sheet>
+  );
+}
+
+const FAILED_REASONS = ["refused", "error", "unconfirmed"];
+const MAIL_STATES = ["queued", "sending", "accepted", "not_sent"];
+
+/**
+ * The invitation notice as the core reports it. "Accepted" is the mail service taking it, not delivery.
+ * A failure is told apart by its fixed reason (spec product/mail.md): a refusal and a mail that was never
+ * sent can be fixed and invited again; an unconfirmed one may have gone out, so no "invite again" advice and
+ * the second-mail risk is written on the row. A failure with a reason this portal does not know counts as
+ * unconfirmed: what cannot be told apart is not shown as a certain failure.
+ */
+function MailCell({ mail }: { mail: Invite["mail"] }) {
+  if (!mail) return <span class="quiet" data-testid="mail-state" data-state="none">{t("invites.mail.none")}</span>;
+  const when = mail.at ? <span class="quiet small">{dateTime(mail.at)}</span> : null;
+  if (mail.state === "failed") {
+    const reason = FAILED_REASONS.includes(mail.reason ?? "") ? (mail.reason as string) : "unconfirmed";
+    return (
+      <span class="stack tight" data-testid="mail-state" data-state="failed" data-reason={reason}>
+        <State dot="danger" bad>{t(`invites.mail.failed.${reason}` as Key)}</State>
+        <span class="quiet small">{reason === "unconfirmed" ? t("invites.mail.second") : t("invites.mail.fix_again")}</span>
+        {when}
+      </span>
+    );
+  }
+  if (!MAIL_STATES.includes(mail.state)) return <span data-testid="mail-state" data-state="other">{t("invites.mail.other", { state: mail.state })}</span>;
+  return (
+    <span class="stack tight" data-testid="mail-state" data-state={mail.state}>
+      <State dot={mail.state === "accepted" ? "solid" : "ring"}>{t(`invites.mail.${mail.state}` as Key)}</State>
+      {when}
+    </span>
   );
 }
 
@@ -116,6 +148,7 @@ export function InvitesPage() {
                   <th>{t("invites.email")}</th>
                   <th>{t("invites.invited")}</th>
                   <th>{t("invites.joined")}</th>
+                  <th>{t("invites.mail")}</th>
                   <th>{t("invites.actions")}</th>
                 </tr>
               </thead>
@@ -125,6 +158,7 @@ export function InvitesPage() {
                     <td class="nowrap">{i.user_id ? <a class="link" href={`/users/${encodeURIComponent(i.user_id)}`}>{i.email}</a> : i.email}</td>
                     <td class="nowrap quiet">{dateTime(i.invited_at)}</td>
                     <td class="nowrap">{i.joined_at ? <State dot="solid">{dateTime(i.joined_at)}</State> : <State dot="ring">{t("invites.not_joined")}</State>}</td>
+                    <td><MailCell mail={i.mail} /></td>
                     <td class="nowrap">
                       <span class="row">
                         <button class="btn quiet small" type="button" disabled={busy} onClick={() => void getCode(i.email)}>

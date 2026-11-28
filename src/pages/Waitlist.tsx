@@ -3,6 +3,7 @@ import { get, post } from "../api";
 import { Loading, State, Table, type DotKind } from "../components/ui";
 import { dateTime, label, labels, t } from "../i18n";
 import { say, sayError, useLoad } from "../lib";
+import { inviteNote } from "../shared/waitlist";
 import type { InviteResult, SignupRow, SignupStatus, Waitlist } from "../types";
 
 const DOT: Record<SignupStatus, DotKind> = { new: "ring", invited: "solid", joined: "solid" };
@@ -43,7 +44,8 @@ export function WaitlistPage() {
     setBusy(true);
     try {
       const result = await post<InviteResult>("/api/waitlist/invite", { emails });
-      say(emails.length === 1 ? t("waitlist.done_one", { email: emails[0] }) : t("waitlist.done_many", { added: result.added.length, already: result.already.length }));
+      const note = inviteNote(emails, result);
+      say(t(note.key, note.vars), note.bad);
       setPicked(new Set());
       reload();
     } catch (err) {
