@@ -12,7 +12,8 @@ test("invite one person from the waitlist", async ({ page }) => {
   const ada = row(page, "new.ada@example.com");
   await expect(ada).toHaveAttribute("data-status", "new");
   await ada.getByRole("button", { name: "邀请" }).click();
-  await expect(said(page)).toHaveText("已邀请 new.ada@example.com，这个邮箱可以登录了。没有发邮件。");
+  await expect(said(page)).toHaveText("已邀请 new.ada@example.com，这个邮箱可以登录了。配好发信服务时会请求发一封邀请通知，结果在「邀请」页看。");
+  await expect(said(page)).not.toContainText("没有发邮件");
   await expect(ada).toHaveAttribute("data-status", "invited");
   await expect(ada.locator("input, button")).toHaveCount(0);
   await expect(page.getByTestId("waitlist-summary")).toHaveText("共 10 人 · 新报名 5 · 已邀请 3 · 已加入 2");
@@ -41,7 +42,8 @@ test("select several on the waitlist and invite them together", async ({ page })
   const button = page.getByTestId("invite-selected");
   await expect(button).toHaveText("邀请选中的 3 人");
   await button.click();
-  await expect(said(page)).toHaveText("已邀请 3 人，另有 0 人本来就在邀请名单里。没有发邮件。");
+  await expect(said(page)).toHaveText("已邀请 3 人，另有 0 人本来就在邀请名单里。配好发信服务时，每个新邀请的人会请求发一封邀请通知，结果在「邀请」页看。");
+  await expect(said(page)).not.toContainText("没有发邮件");
   for (const email of three) await expect(row(page, email)).toHaveAttribute("data-status", "invited");
   await expect(row(page, "new.dana@example.com")).toHaveAttribute("data-status", "new");
   await expect(page.getByTestId("waitlist-summary")).toHaveText("共 10 人 · 新报名 3 · 已邀请 5 · 已加入 2");
@@ -135,7 +137,7 @@ test("when mail is configured the code can still be fetched, for when the mail d
   await setFake(request, { mail_configured: true });
   await signIn(page, "/invites");
   await expect(page.locator("tbody tr")).toHaveCount(68);
-  await expect(page.getByTestId("mail-note")).toHaveText("发信服务配好了：邀请之后会发一封邀请通知，登录验证码也会发到对方的邮箱。对方没收到验证码时，可以在这里取出来转给他。");
+  await expect(page.getByTestId("mail-note")).toHaveText("发信服务配好了：每个邀请会请求发一封邀请通知，状态看「邀请通知」一列；登录验证码也会发到对方邮箱。对方没收到验证码时，可以在这里取出来转给他。");
   await expect(row(page, "pending.kai@example.com").getByRole("button", { name: "取登录验证码" })).toBeVisible();
   await expect(row(page, "pending.kai@example.com").getByRole("button", { name: "撤回" })).toBeVisible();
 });

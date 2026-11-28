@@ -80,6 +80,32 @@ test("a new invitation shows as queued when mail is configured, and as not sent 
   await expect(cell(page, "fresh.two@example.com")).toContainText("排队中");
 });
 
+test("the notes say a mail is requested, never that one is or is not sent: the state is the invitation row's own", async ({ page, request }) => {
+  await signIn(page, "/invites");
+  await expect(page.getByTestId("mail-note")).toHaveText("没配发信服务：不会发邀请通知。邀请之后，在这里取登录验证码转给对方。");
+
+  await setFake(request, { mail_configured: true });
+  await page.reload();
+  const on = page.getByTestId("mail-note");
+  await expect(on).toHaveText("发信服务配好了：每个邀请会请求发一封邀请通知，状态看「邀请通知」一列；登录验证码也会发到对方邮箱。对方没收到验证码时，可以在这里取出来转给他。");
+  await expect(on).not.toContainText("会发一封");
+  await expect(on).not.toContainText("没有发邮件");
+});
+
+test("inviting from the sign-up list: the sentence says a mail is requested, and it points to the Invitations page", async ({ page }) => {
+  await signIn(page, "/waitlist");
+  await row(page, "new.ada@example.com").getByRole("button", { name: "邀请" }).click();
+  const one = page.getByTestId("said");
+  await expect(one).toContainText("请求发一封邀请通知");
+  await expect(one).toContainText("结果在「邀请」页看");
+  await expect(one).not.toContainText("没有发邮件");
+  await expect(one).not.toContainText("已发");
+
+  for (const email of ["new.bo@example.com", "new.chen@example.com"]) await page.getByLabel(`选中 ${email}`).check();
+  await page.getByTestId("invite-selected").click();
+  await expect(page.getByTestId("said")).toHaveText("已邀请 2 人，另有 0 人本来就在邀请名单里。配好发信服务时，每个新邀请的人会请求发一封邀请通知，结果在「邀请」页看。");
+});
+
 test("inviting from the sign-up list hands the core each person's sign-up language; pasted emails with no sign-up row get none", async ({ page, request }) => {
   await signIn(page, "/waitlist");
   // new.ada signed up from the English page, new.bo from the Chinese one (dev/waitlist/seed.sql).
@@ -110,5 +136,26 @@ test.describe("in English", () => {
     await expect(cell(page, "pending.kai@example.com")).toContainText("Failed: the mail service refused it");
     await expect(cell(page, "pending.kai@example.com")).toContainText("Fix the setting, then you can withdraw and invite again.");
     await expect(cell(page, "pending.ines@example.com")).toContainText("Queued");
+  });
+
+  test("the notes read in English: a mail is requested, its state is on the invitation row", async ({ page, request }) => {
+    await signIn(page, "/invites");
+    await expect(page.getByTestId("mail-note")).toHaveText("Mail is not configured: no invitation mail is sent. After inviting, get a sign-in code here and pass it on.");
+    await setFake(request, { mail_configured: true });
+    await page.reload();
+    await expect(page.getByTestId("mail-note")).toHaveText(
+      "Mail is configured: each invitation requests one invitation mail; the Invitation mail column shows its state. Sign-in codes are emailed too. If a code does not arrive, get it here and pass it on.",
+    );
+
+    await page.goto("/waitlist");
+    await row(page, "new.ada@example.com").getByRole("button", { name: "Invite" }).click();
+    await expect(page.getByTestId("said")).toHaveText(
+      "Invited new.ada@example.com. This email can sign in now. When mail is configured, one invitation mail is requested; its state is on Invitations.",
+    );
+    for (const email of ["new.bo@example.com", "new.chen@example.com"]) await page.getByLabel(`Select ${email}`).check();
+    await page.getByTestId("invite-selected").click();
+    await expect(page.getByTestId("said")).toHaveText(
+      "Invited 2 people; 0 more were already on the invitation list. When mail is configured, one invitation mail is requested for each newly invited person; its state is on Invitations.",
+    );
   });
 });
